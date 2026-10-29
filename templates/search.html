@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Recherche') }}{% endblock %}
+{% macro lines(v) %}{{ v | join('\n') }}{% endmacro %}
+{% block body %}
+<main class="wrap">
+  {% include "_flash.html" %}
+  <h1 class="h">{{ _('Critères de recherche') }}</h1>
+  <p class="muted lead">{{ _("Réglez vos critères puis lancez la recherche. Les offres retenues arrivent dans") }}
+    <a href="{{ url_for('dashboard', status='proposed') }}">{{ _('Nouvelles') }}</a> — {{ _("rien n'est envoyé aux recruteurs.") }}</p>
+
+  {% if runs %}
+  <section class="panel">
+    <h2>{{ _('Dernières recherches') }}</h2>
+    <ul class="runs">
+      {% for r in runs %}
+      <li><a href="{{ url_for('search_run', run_id=r.id) }}">{{ r.created_at|localtime }}</a>
+        {% if r.kind == 'email' %}<span class="pill">{{ _('Import e-mail') }}</span>{% endif %}
+        <span class="badge {{ r.status }}">{{ _({'queued':'en attente','running':'en cours','done':'terminée','error':'erreur'}[r.status]) }}</span>
+        {% if r.status == 'done' %}<span class="muted">{{ _('{sel} retenues / {found} trouvées', sel=r.selected, found=r.found) }}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <form method="post" class="crit" id="crit">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+
+    <section class="panel">
+      <h2>{{ _('1. Quoi chercher') }}</h2>
+      <label class="field">{{ _('Mots-clés envoyés aux sites') }} <span class="hint">{{ _('un par ligne ou séparés par des virgules') }}</span>
+        <textarea name="keywords" rows="3" placeholder="{{ _('ex. responsable supply chain, approvisionneur') }}">{{ lines(crit.keywords) }}</textarea></label>
+      <div class="field">{{ _('Sources') }}
+        <div class="checks">
+          {% for key, label in SOURCES.items() %}
+          <label class="check"><input type="checkbox" name="sources" value="{{ key }}" {{ 'checked' if key in crit.sources }}>
+            {{ label }}{% if not settings[key] %} <span class="warn" title="{{ _('Clés API manquantes — voir Admin → Paramètres') }}">{{ _('clé manquante') }}</span>{% endif %}</label>
+          {% endfor %}
+          <span class="check viaemail">LinkedIn · Indeed · APEC · WTTJ · HelloWork · Cadremploi
+            <a href="{{ url_for('account') }}#mail" class="pill">{{ _('Import e-mail') }}</a></span>
+        </div>
+        <span class="hint">{{ _("France Travail, Adzuna, Jooble et Careerjet couvrent la France ; RemoteOK et Himalayas sont des sites de télétravail internationaux. LinkedIn, APEC, Indeed… arrivent par l'import des alertes e-mail (page Compte).") }}</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>{{ _('2. Filtres') }}</h2>
+      <div class="grid2">
+        <label class="field">{{ _('Départements (France Travail)') }} <span class="hint">{{ _('ex. 35, 22, 56 — vide = toute la France') }}</span>
+          <input name="ft_departements" value="{{ crit.ft_departements }}"></label>
+        <label class="field">{{ _('Ville / région (Adzuna, Jooble, Careerjet)') }} <span class="hint">{{ _('ex. Rennes — vide = toute la France') }}</span>
+          <input name="adzuna_where" value="{{ crit.adzuna_where }}"></label>
+        <label class="field">{{ _('Publiées depuis (jours)') }}
+          <input name="max_age_days" type="number" min="1" max="90" value="{{ crit.max_age_days }}"></label>
+        <label class="field">{{ _('Salaire annuel minimum (€)') }} <span class="hint">{{ _('écarte seulement les offres qui affichent un salaire plus bas') }}</span>
+          <input name="salary_floor" type="number" min="0" step="1000" value="{{ crit.salary_floor }}"></label>
+      </div>
+      <div class="field">{{ _('Types de contrat') }} <span class="hint">{{ _('filtre France Travail et Careerjet ; si seule « Alternance » est cochée, le mot alternance est ajouté aux recherches des autres sites') }}</span>
+        <div class="checks">
+          {% for c in CONTRACTS %}<label class="check"><input type="checkbox" name="contracts" value="{{ c }}" {{ 'checked' if c in crit.contracts }}> {{ c }}</label>{% endfor %}
+        </div>
+      </div>
+      <label class="field">{{ _('Pays acceptés pour le télétravail') }} <span class="hint">{{ _("offres « remote » limitées à certains pays : gardées seulement si l'un de ces mots apparaît") }}</span>
+        <input name="remote_countries" value="{{ crit.remote_countries | join(', ') }}"></label>
+    </section>
+
+    <section class="panel">
+      <h2>{{ _('3. Score') }}</h2>
+      <p class="hint">{{ long_text('SCORE_HELP') }}</p>
+      <div class="cats">
+        {% for c in crit.categories + [{'name':'','weight':10,'scope':'title','gate':'','terms':[]}] %}
+        {% set i = loop.index0 %}
+        <fieldset class="cat{{ ' new' if not c.name }}">
+          <div class="catrow">
+            <input name="cat-{{ i }}-name" value="{{ c.name }}" placeholder="{{ _('Nouvelle catégorie…') if not c.name else '' }}" class="cname" aria-label="{{ _('Nom') }}">
+            <label class="mini">{{ _('Poids') }} <input name="cat-{{ i }}-weight" type="number" value="{{ c.weight }}" class="num"></label>
+            <label class="mini">{{ _('Où') }} <select name="cat-{{ i }}-scope">{% for k, v in SCOPES.items() %}<option value="{{ k }}" {{ 'selected' if c.scope == k }}>{{ _(v) }}</option>{% endfor %}</select></label>
+            <label class="mini">{{ _('Règle') }} <select name="cat-{{ i }}-gate">{% for k, v in GATES.items() %}<option value="{{ k }}" {{ 'selected' if c.gate == k }}>{{ _(v) }}</option>{% endfor %}</select></label>
+            {% if c.name %}<label class="mini del"><input type="checkbox" name="cat-{{ i }}-delete" value="1"> {{ _('supprimer') }}</label>{% endif %}
+          </div>
+          <textarea name="cat-{{ i }}-terms" rows="2" placeholder="{{ _('termes, séparés par des virgules — une catégorie sans terme est ignorée') }}">{{ c.terms | join(', ') }}</textarea>
+        </fieldset>
+        {% endfor %}
+      </div>
+      <div class="grid2">
+        <label class="field">{{ _("Exclusions — l'offre est écartée") }} <span class="hint">{{ _('titre, entreprise, lieu et contrat') }}</span>
+          <textarea name="exclude" rows="5">{{ lines(crit.exclude) }}</textarea></label>
+        <div>
+          <label class="field">{{ _('Pénalités') }} <span class="hint">{{ _('appliquée une seule fois') }}</span>
+            <textarea name="penalty" rows="3">{{ lines(crit.penalty) }}</textarea></label>
+          <label class="field mini">{{ _('Poids de la pénalité') }} <input name="penalty_weight" type="number" max="0" value="{{ crit.penalty_weight }}" class="num"></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>{{ _('4. Sélection') }}</h2>
+      <div class="grid2">
+        <label class="field">{{ _('Score minimum') }} <input name="min_score" type="number" value="{{ crit.min_score }}"></label>
+        <label class="field">{{ _('Maximum par source') }} <span class="hint">{{ _('les meilleures offres de chaque site, sans compléter un site pauvre') }}</span>
+          <input name="top_n" type="number" min="1" max="100" value="{{ crit.top_n }}"></label>
+      </div>
+    </section>
+
+    <div class="actionsbar">
+      <button class="btn primary big" name="action" value="run" type="submit">{{ _('Enregistrer et lancer la recherche') }}</button>
+      <button class="btn" name="action" value="save" type="submit">{{ _('Enregistrer') }}</button>
+    </div>
+  </form>
+
+  <form method="post" class="panel inline" onsubmit="return confirm({{ _('Remplacer tous vos critères par ce modèle ?')|tojson|forceescape }})">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="preset">
+    <span class="field" style="margin:0">{{ _("Repartir d'un modèle") }}</span>
+    <select name="preset">{% for k, v in PRESETS.items() %}<option value="{{ k }}">{{ _(v[0]) }}</option>{% endfor %}</select>
+    <button class="btn" type="submit">{{ _('Charger') }}</button>
+  </form>
+</main>
+{% endblock %}

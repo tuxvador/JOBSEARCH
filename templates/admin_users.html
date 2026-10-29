@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Utilisateurs') }}{% endblock %}
+{% block body %}
+<main class="wrap">
+  {% include "_flash.html" %}
+  <h1 class="h">{{ _('Administration') }}</h1>
+  {% include "_admin_tabs.html" %}
+  <section class="panel">
+    <h2>{{ _('Nouvel utilisateur') }}</h2>
+    <form method="post" class="inline">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="create">
+      <input name="username" placeholder="{{ _("Nom d'utilisateur") }}" required pattern="[A-Za-z0-9._-]{2,32}" autocomplete="off">
+      <input name="password" type="text" placeholder="{{ _('Mot de passe (vide = généré)') }}" minlength="{{ min_password }}" autocomplete="new-password">
+      <label class="mini">{{ _('Profil de départ') }} <select name="preset">{% for k, v in PRESETS.items() %}<option value="{{ k }}">{{ _(v[0]) }}</option>{% endfor %}</select></label>
+      <label class="mini">{{ _("Langue de l'interface") }} <select name="lang">{% for code, label in LANGS.items() %}<option value="{{ code }}" {{ 'selected' if code == g.lang }}>{{ label }}</option>{% endfor %}</select></label>
+      <label class="check"><input type="checkbox" name="is_admin" value="1"> {{ _('administrateur') }}</label>
+      <button class="btn primary" type="submit">{{ _('Créer') }}</button>
+    </form>
+    <p class="hint">{{ long_text('ADMIN_CREATE_HELP') }}</p>
+  </section>
+  <section class="panel">
+    <h2>{{ _('Utilisateurs ({n})', n=users|length) }}</h2>
+    <div class="tablewrap">
+    <table class="users">
+      <thead><tr><th>{{ _('Nom') }}</th><th>{{ _('Rôle') }}</th><th>{{ _('Langue') }}</th><th>{{ _('Offres') }}</th><th>{{ _('Dernière recherche') }}</th><th>{{ _('Créé') }}</th><th></th></tr></thead>
+      <tbody>
+      {% for u in users %}
+      <tr class="{{ 'off' if u.disabled }}">
+        <td><b>{{ u.username }}</b>{% if u.id == g.user.id %} <span class="muted">{{ _('(vous)') }}</span>{% endif %}
+          {% if u.disabled %} <span class="pill">{{ _('désactivé') }}</span>{% endif %}</td>
+        <td>{{ _('admin') if u.is_admin else _('utilisateur') }}</td>
+        <td>{{ u.lang|upper }}</td>
+        <td>{{ u.n_jobs }}</td>
+        <td>{{ u.last_search|localtime if u.last_search else '—' }}</td>
+        <td>{{ u.created_at|localtime('%d/%m/%Y') }}</td>
+        <td class="rowactions">
+          {% for action, label, confirm in [('reset', _('Nouveau mot de passe'), _('Générer un nouveau mot de passe ?')),
+                                            ('toggle_admin', _('Retirer admin') if u.is_admin else _('Rendre admin'), ''),
+                                            ('toggle_disabled', _('Réactiver') if u.disabled else _('Désactiver'), ''),
+                                            ('delete', _('Supprimer'), _('Supprimer {name} et toutes ses offres ? Irréversible.', name=u.username))] %}
+          {% if u.id != g.user.id or action == 'reset' %}
+          <form method="post" {% if confirm %}onsubmit="return confirm({{ confirm|tojson|forceescape }})"{% endif %}>
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+            <input type="hidden" name="user_id" value="{{ u.id }}">
+            <button class="btn small{{ ' danger' if action == 'delete' }}" name="action" value="{{ action }}">{{ label }}</button>
+          </form>
+          {% endif %}
+          {% endfor %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+</main>
+{% endblock %}

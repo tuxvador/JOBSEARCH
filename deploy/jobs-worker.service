@@ -1,0 +1,23 @@
+[Unit]
+Description=job.tuxvador.fr search worker
+After=network-online.target jobs-app.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jobs
+Group=jobs
+WorkingDirectory=/opt/jobs-app
+EnvironmentFile=/opt/jobs-app/.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/jobs-app/venv/bin/python /opt/jobs-app/worker.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/jobs-app/instance /opt/jobs-app/backups
+
+[Install]
+WantedBy=multi-user.target

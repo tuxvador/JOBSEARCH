@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Compte') }}{% endblock %}
+{% block body %}
+<main class="wrap narrow">
+  {% include "_flash.html" %}
+  <h1 class="h">{{ _('Compte — {name}', name=g.user.username) }}</h1>
+
+  <section class="panel">
+    <h2>{{ _('Langue') }}</h2>
+    <div class="checks">{% for code, label in LANGS.items() %}
+      {% if code == g.lang %}<b>{{ label }}</b>{% else %}<a class="btn small" href="{{ url_for('set_lang', code=code, next=url_for('account')) }}">{{ label }}</a>{% endif %}
+    {% endfor %}</div>
+  </section>
+
+  <section class="panel">
+    <h2>{{ _('Bouton « Ajouter à mes offres »') }}</h2>
+    <p class="hint">{{ long_text('BOOKMARK_HELP') }}</p>
+    <a class="btn primary bookmarklet" onclick="return false" title="{{ _('+ Mes offres') }}"
+       href="javascript:(function(){var h=document.querySelector('h1');window.open('{{ base_url }}/add?url='+encodeURIComponent(location.href)+'&amp;title='+encodeURIComponent(document.title)+'&amp;h1='+encodeURIComponent(h?h.innerText.trim().slice(0,200):'')+'&amp;sel='+encodeURIComponent(String(window.getSelection()).slice(0,1500)),'jobadd','width=560,height=760')})()">{{ _('+ Mes offres') }}</a>
+  </section>
+
+  <section class="panel" id="mail">
+    <h2>{{ _('Import des alertes e-mail') }}</h2>
+    <p class="hint">{{ long_text('MAIL_HELP') }}</p>
+    {% if mailbox %}
+      {% if mailbox.last_check %}<p class="hint">{{ _('Dernière vérification : {date}', date=mailbox.last_check|localtime) }}</p>{% endif %}
+      {% if mailbox.last_error %}<p class="flash err">{{ _('Dernière erreur : {err}', err=mailbox.last_error) }}</p>{% endif %}
+    {% endif %}
+    <form method="post" class="stack">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <div class="grid2">
+        <label class="field">{{ _('Serveur IMAP') }} <input name="host" value="{{ mailbox.host if mailbox else 'imap.gmail.com' }}" required></label>
+        <label class="field">{{ _('Port') }} <input name="port" type="number" value="{{ mailbox.port if mailbox else 993 }}"></label>
+        <label class="field">{{ _('Adresse / identifiant') }} <input name="username" value="{{ mailbox.username if mailbox else '' }}" autocomplete="off" required></label>
+        <label class="field">{{ _("Mot de passe d'application") }}{% if mailbox %} <span class="hint">{{ _('enregistré — laissez vide pour le garder') }}</span>{% endif %}
+          <input name="password" type="password" autocomplete="new-password" {{ '' if mailbox else 'required' }}></label>
+        <label class="field">{{ _('Dossier') }} <input name="folder" value="{{ mailbox.folder if mailbox else 'INBOX' }}"></label>
+      </div>
+      <label class="check"><input type="checkbox" name="enabled" value="1" {{ 'checked' if not mailbox or mailbox.enabled }}> {{ _("Activer l'import") }}</label>
+      <div class="actionsrow">
+        <button class="btn primary" name="action" value="mailbox_test" type="submit">{{ _('Tester et importer maintenant') }}</button>
+        <button class="btn" name="action" value="mailbox" type="submit">{{ _('Enregistrer') }}</button>
+      </div>
+    </form>
+    {% if mailbox %}
+    <form method="post"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="btn ghost small danger" name="action" value="mailbox_delete" type="submit">{{ _('Supprimer la configuration') }}</button></form>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <h2>{{ _('Changer le mot de passe') }}</h2>
+    <form method="post" class="stack">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="password">
+      <label class="field">{{ _('Mot de passe actuel') }} <input name="current" type="password" autocomplete="current-password" required></label>
+      <label class="field">{{ _('Nouveau mot de passe') }} <span class="hint">{{ _('10 caractères minimum') }}</span>
+        <input name="new" type="password" minlength="10" autocomplete="new-password" required></label>
+      <label class="field">{{ _('Confirmer') }} <input name="confirm" type="password" minlength="10" autocomplete="new-password" required></label>
+      <div><button class="btn primary" type="submit">{{ _('Modifier') }}</button></div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>{{ _('Clé API') }}</h2>
+    <p class="hint">{{ long_text('API_HELP') }}</p>
+    <div class="keyrow">
+      <input id="apikey" type="password" value="{{ g.user.api_key }}" readonly aria-label="{{ _('Clé API') }}">
+      <button class="btn" type="button" onclick="var k=document.getElementById('apikey');k.type=k.type==='password'?'text':'password'">{{ _('Afficher') }}</button>
+    </div>
+    <form method="post" onsubmit="return confirm({{ _("Générer une nouvelle clé ? L'ancienne cessera de fonctionner.")|tojson|forceescape }})">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="apikey">
+      <button class="btn ghost" type="submit">{{ _('Générer une nouvelle clé') }}</button>
+    </form>
+  </section>
+</main>
+{% endblock %}

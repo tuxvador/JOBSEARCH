@@ -1,0 +1,4 @@
+<nav class="tabs">
+  <a class="tab{{ ' active' if request.endpoint == 'admin_users' }}" href="{{ url_for('admin_users') }}">{{ _('Utilisateurs') }}</a>
+  <a class="tab{{ ' active' if request.endpoint == 'admin_settings' }}" href="{{ url_for('admin_settings') }}">{{ _('Paramètres') }}</a>
+</nav>

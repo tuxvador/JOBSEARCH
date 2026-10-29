@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Ajouter une offre') }}{% endblock %}
+{% block body %}
+<main class="wrap narrow popup">
+  {% include "_flash.html" %}
+  <h1 class="h">{{ _('Ajouter une offre') }}</h1>
+  {% if saved %}
+    <p class="flash">{{ _('Offre déjà présente dans vos offres') if dup else _('Offre enregistrée. Vous pouvez fermer cette fenêtre.') }}</p>
+    <p><b>{{ job.title }}</b>{% if job.company %} — {{ job.company }}{% endif %}</p>
+    <button class="btn" type="button" onclick="window.close()">{{ _('Fermer') }}</button>
+  {% else %}
+    {% if dup %}<p class="flash err">{{ _('Offre déjà présente dans vos offres') }}</p>{% endif %}
+    <p class="muted">{{ _('Vérifiez puis enregistrez.') }}
+      {% if score is not none %}<br><span class="score">{{ score }}</span> {{ _('Score avec vos critères : {score}', score=score) }}{% if reasons %} — {{ reasons }}{% endif %}{% endif %}</p>
+    <form method="post" class="stack">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <label class="field">{{ _('Intitulé *') }} <input name="title" value="{{ job.title }}" required></label>
+      <label class="field">{{ _('Entreprise') }} <input name="company" value="{{ job.company }}"></label>
+      <label class="field">{{ _('Lieu') }} <input name="location" value="{{ job.location }}"></label>
+      <label class="field">{{ _('Lien') }} <input name="url" type="url" value="{{ job.url }}"></label>
+      <label class="field">Source <input name="source" value="{{ job.source }}"></label>
+      <label class="field">{{ _('Notes') }} <textarea name="notes" rows="4">{{ job.notes }}</textarea></label>
+      <div class="actionsrow">
+        <button class="btn primary" name="to" value="proposed" type="submit">{{ _('Enregistrer dans Nouvelles') }}</button>
+        <button class="btn" name="to" value="accepted" type="submit">{{ _('Enregistrer dans À postuler') }}</button>
+      </div>
+    </form>
+  {% endif %}
+</main>
+{% endblock %}

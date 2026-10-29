@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Connexion') }}{% endblock %}
+{% block body %}
+{% from "_macros.html" import langswitch with context %}
+<main class="login">
+  <form method="post" class="card">
+    <div class="cardhead"><h1>{{ _("Recherche d'emploi") }}</h1>{{ langswitch() }}</div>
+    <p class="muted">job.tuxvador.fr</p>
+    {% include "_flash.html" %}
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label>{{ _('Utilisateur') }} <input name="username" autocomplete="username" required autofocus></label>
+    <label>{{ _('Mot de passe') }} <input name="password" type="password" autocomplete="current-password" required></label>
+    <button class="btn primary" type="submit">{{ _('Se connecter') }}</button>
+  </form>
+</main>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Paramètres') }}{% endblock %}
+{% macro secret(key, label) %}
+  <label class="field">{{ label }}{% if vals[key] %} <span class="hint">{{ _('enregistrée — laissez vide pour la garder') }}</span>{% endif %}
+    <input name="{{ key }}" type="password" autocomplete="new-password"></label>
+  {% if vals[key] %}<label class="check"><input type="checkbox" name="clear_{{ key }}" value="1"> {{ _('effacer la clé') }}</label>{% endif %}
+{% endmacro %}
+{% block body %}
+<main class="wrap narrow">
+  {% include "_flash.html" %}
+  <h1 class="h">{{ _('Administration') }}</h1>
+  {% include "_admin_tabs.html" %}
+  <form method="post" class="stack">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <section class="panel">
+      <h2>France Travail</h2>
+      <p class="hint">{{ long_text('FT_HELP') }}</p>
+      <label class="field">{{ _('Identifiant client') }} <input name="ft_client_id" value="{{ vals.ft_client_id }}" autocomplete="off"></label>
+      {{ secret('ft_client_secret', _('Clé secrète')) }}
+    </section>
+    <section class="panel">
+      <h2>Adzuna</h2>
+      <p class="hint">{{ long_text('ADZUNA_HELP') }}</p>
+      <label class="field">App ID <input name="adzuna_app_id" value="{{ vals.adzuna_app_id }}" autocomplete="off"></label>
+      {{ secret('adzuna_app_key', 'App key') }}
+    </section>
+    <section class="panel">
+      <h2>Jooble</h2>
+      <p class="hint">{{ long_text('JOOBLE_HELP') }}</p>
+      {{ secret('jooble_key', _('Clé API Jooble')) }}
+    </section>
+    <section class="panel">
+      <h2>Careerjet</h2>
+      <p class="hint">{{ long_text('CAREERJET_HELP') }}</p>
+      {{ secret('careerjet_key', _('Clé API Careerjet')) }}
+      <label class="field mini">{{ _('Code pays Careerjet') }} <input name="careerjet_locale" value="{{ vals.careerjet_locale or 'fr_FR' }}"></label>
+    </section>
+    <p class="hint">{{ _('RemoteOK et Himalayas ne demandent pas de clé.') }}</p>
+    <div><button class="btn primary" type="submit">{{ _('Enregistrer') }}</button></div>
+  </form>
+</main>
+{% endblock %}

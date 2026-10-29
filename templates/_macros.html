@@ -1,0 +1,3 @@
+{% macro langswitch() -%}
+<span class="langs">{% for code in LANGS %}{% if code == g.lang %}<b>{{ code|upper }}</b>{% else %}<a href="{{ url_for('set_lang', code=code, next=request.full_path) }}" lang="{{ code }}" title="{{ LANGS[code] }}">{{ code|upper }}</a>{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}</span>
+{%- endmacro %}

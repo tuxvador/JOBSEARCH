@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Offres') }}{% endblock %}
+{% block body %}
+<main class="wrap">
+  {% include "_flash.html" %}
+  <nav id="tabs" class="tabs">
+    {% for key, label in tabs %}
+    <button class="tab{% if key == current_status %} active{% endif %}" data-status="{{ key }}">
+      {{ _(label) }} <span class="count" data-count="{{ key }}">{{ counts[key] }}</span>
+    </button>
+    {% endfor %}
+  </nav>
+  <div class="toolbar">
+    <input id="search" type="search" placeholder="{{ _('Filtrer (titre, entreprise, lieu, notes)…') }}" value="{{ q }}">
+    <details class="add">
+      <summary class="btn">{{ _('+ Ajouter une offre') }}</summary>
+      <form method="post" action="{{ url_for('job_new') }}" class="addform">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <input name="title" placeholder="{{ _('Intitulé *') }}" required>
+        <input name="company" placeholder="{{ _('Entreprise') }}">
+        <input name="location" placeholder="{{ _('Lieu') }}">
+        <input name="url" type="url" placeholder="{{ _('Lien') }}">
+        <input name="source" placeholder="{{ _('Source (LinkedIn, WTTJ…)') }}">
+        <textarea name="notes" placeholder="{{ _('Notes') }}" rows="2"></textarea>
+        <button class="btn primary" type="submit">{{ _('Ajouter') }}</button>
+      </form>
+    </details>
+  </div>
+  <div id="jobs-container">{% include "_joblist.html" %}</div>
+</main>
+<script>
+(function () {
+  var csrf = "{{ csrf_token() }}";
+  var failMsg = {{ _('Échec de la mise à jour — rechargez la page.')|tojson }};
+  var current = "{{ current_status }}";
+  var box = document.getElementById("jobs-container");
+  var search = document.getElementById("search");
+  var timer;
+  function load(status) {
+    current = status;
+    document.querySelectorAll("#tabs .tab").forEach(function (t) {
+      t.classList.toggle("active", t.dataset.status === status);
+    });
+    var qs = "?status=" + encodeURIComponent(status) + "&q=" + encodeURIComponent(search.value.trim());
+    history.replaceState(null, "", qs);
+    fetch(qs + "&partial=1", { headers: { "X-Requested-With": "XMLHttpRequest" } })
+      .then(function (r) { if (!r.ok) throw r; return r.text(); })
+      .then(function (html) { box.innerHTML = html; })
+      .catch(function () { location = qs; });
+  }
+  document.getElementById("tabs").addEventListener("click", function (e) {
+    var t = e.target.closest(".tab");
+    if (t) load(t.dataset.status);
+  });
+  search.addEventListener("input", function () {
+    clearTimeout(timer);
+    timer = setTimeout(function () { load(current); }, 250);
+  });
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-action]");
+    if (!b) return;
+    e.preventDefault();
+    var card = b.closest(".job");
+    fetch("/job/" + card.dataset.id + "/" + b.dataset.action, {
+      method: "POST",
+      headers: { "X-Requested-With": "XMLHttpRequest", "X-CSRF-Token": csrf }
+    })
+      .then(function (r) { if (!r.ok) throw r; return r.json(); })
+      .then(function (d) {
+        Object.keys(d.counts).forEach(function (k) {
+          var el = document.querySelector('[data-count="' + k + '"]');
+          if (el) el.textContent = d.counts[k];
+        });
+        if (current === "all") { card.dataset.status = d.status; } else { card.remove(); }
+      })
+      .catch(function () { alert(failMsg); });
+  });
+})();
+</script>
+{% endblock %}

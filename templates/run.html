@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Résultats') }}{% endblock %}
+{% block body %}
+<main class="wrap">
+  {% include "_flash.html" %}
+  <p><a href="{{ url_for('search_page') }}">{{ _('← Critères') }}</a></p>
+  <h1 class="h">{{ _('Import e-mail du {date}' if run.kind == 'email' else 'Recherche du {date}', date=run.created_at|localtime) }}</h1>
+  <p id="state" class="lead" data-status="{{ run.status }}">
+    {% if run.status in ('queued', 'running') %}<span class="spinner"></span> {{ _('Recherche en cours… la page se mettra à jour toute seule.') }}
+    {% elif run.status == 'error' %}<span class="flash err">{{ _('La recherche a échoué — voir le journal.') }}</span>
+    {% else %}{{ _('{sel} offres retenues sur {found} trouvées — elles sont dans', sel=run.selected, found=run.found) }}
+      <a href="{{ url_for('dashboard', status='proposed') }}">{{ _('Nouvelles') }}</a>.{% endif %}
+  </p>
+  <details class="panel" {{ 'open' if run.status != 'done' }}>
+    <summary>{{ _('Journal') }}</summary>
+    <pre id="log" class="log">{{ run.log }}</pre>
+  </details>
+
+  {% if results %}
+  <div class="toolbar">
+    <label class="check"><input type="checkbox" id="showall"> {{ _('Afficher aussi les offres écartées ({n})', n=results|rejectattr('selected')|list|length) }}</label>
+  </div>
+  <ul class="jobs results" id="results">
+    {% for r in results %}
+    <li class="job{{ ' rejected' if not r.selected }}{{ ' s-hi' if r.score >= 40 else (' s-mid' if r.score >= 20 else ' s-lo') }}" data-id="{{ r.id }}">
+      <div class="main">
+        <div class="title">{% if r.url %}<a href="{{ r.url }}" target="_blank" rel="noopener noreferrer">{{ r.title }}</a>{% else %}{{ r.title }}{% endif %}</div>
+        <div class="meta">
+          {% if r.company %}<span class="company">{{ r.company }}</span>{% endif %}
+          {% if r.location %}<span>{{ r.location }}</span>{% endif %}
+          <span class="pill">{{ r.source }}</span>
+          {% if r.contract %}<span>{{ r.contract }}</span>{% endif %}
+          {% if r.salary %}<span>{{ r.salary }}</span>{% endif %}
+          {% if r.published %}<span class="muted">{{ r.published }}</span>{% endif %}
+        </div>
+        <p class="notes"><span class="score">{{ r.score }}</span>
+          {% if r.reasons %} · {{ r.reasons }}{% endif %}
+          {% if r.verdict %} · <span class="verdict">{{ r.verdict }}</span>{% endif %}</p>
+      </div>
+      <div class="actions">
+        {% if r.job_id %}<span class="ok-tag">{{ _('ajoutée') }}</span>
+        {% else %}<button class="btn ok" data-add="{{ r.id }}">{{ _('Ajouter') }}</button>{% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</main>
+<script>
+(function () {
+  var csrf = "{{ csrf_token() }}";
+  var added = {{ _('ajoutée')|tojson }}, failMsg = {{ _('Échec — rechargez la page.')|tojson }};
+  var state = document.getElementById("state");
+  if (state.dataset.status === "queued" || state.dataset.status === "running") {
+    var log = document.getElementById("log");
+    var poll = setInterval(function () {
+      fetch("{{ url_for('search_run_status', run_id=run.id) }}")
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          log.textContent = d.log;
+          if (d.status === "done" || d.status === "error") { clearInterval(poll); location.reload(); }
+        });
+    }, 2000);
+  }
+  var showall = document.getElementById("showall");
+  var list = document.getElementById("results");
+  if (showall && list) showall.addEventListener("change", function () { list.classList.toggle("showall", showall.checked); });
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-add]");
+    if (!b) return;
+    b.disabled = true;
+    fetch("/search/result/" + b.dataset.add + "/add", { method: "POST",
+      headers: { "X-Requested-With": "XMLHttpRequest", "X-CSRF-Token": csrf } })
+      .then(function (r) {
+        if (!r.ok) throw r;
+        var s = document.createElement("span"); s.className = "ok-tag"; s.textContent = added; b.replaceWith(s);
+      })
+      .catch(function () { b.disabled = false; alert(failMsg); });
+  });
+})();
+</script>
+{% endblock %}

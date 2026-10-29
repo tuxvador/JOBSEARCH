@@ -1,0 +1,21 @@
+[Unit]
+Description=job.tuxvador.fr dashboard (Flask/gunicorn)
+After=network.target
+
+[Service]
+Type=simple
+User=jobs
+Group=jobs
+WorkingDirectory=/opt/jobs-app
+EnvironmentFile=/opt/jobs-app/.env
+ExecStart=/opt/jobs-app/venv/bin/gunicorn -w 2 -b 127.0.0.1:5000 --no-control-socket --access-logfile - app:app
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/jobs-app/instance /opt/jobs-app/backups
+
+[Install]
+WantedBy=multi-user.target

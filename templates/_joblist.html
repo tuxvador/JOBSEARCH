@@ -1,0 +1,29 @@
+{% if not jobs %}
+<p class="empty">{{ _('Aucune offre ici.') }} <a href="{{ url_for('search_page') }}">{{ _('Lancer une recherche →') }}</a></p>
+{% else %}
+<ul class="jobs{% if current_status == 'all' %} show-st{% endif %}">
+{% for j in jobs %}
+  <li class="job{{ ' s-hi' if j.score >= 40 else (' s-mid' if j.score >= 20 else ' s-lo') }}" data-id="{{ j.id }}" data-status="{{ j.status }}">
+    <div class="main">
+      <div class="title">
+        {% if j.url %}<a href="{{ j.url }}" target="_blank" rel="noopener noreferrer">{{ j.title }}</a>{% else %}{{ j.title }}{% endif %}
+      </div>
+      <div class="meta">
+        {% if j.company %}<span class="company">{{ j.company }}</span>{% endif %}
+        {% if j.location %}<span>{{ j.location }}</span>{% endif %}
+        {% if j.source %}<span class="pill">{{ j.source }}</span>{% endif %}
+        <span class="score" title="Score">{{ j.score }}</span>
+        <span class="st">{{ _({'proposed':'Nouvelles','accepted':'À postuler','rejected':'Archivées'}[j.status]) }}</span>
+        <span class="muted">{{ j.created_at|localtime('%d/%m/%Y') }}</span>
+      </div>
+      {% if j.notes %}<p class="notes">{{ j.notes }}</p>{% endif %}
+    </div>
+    <div class="actions">
+      {% if j.status != 'accepted' %}<button class="btn ok" data-action="accept">{{ _('À postuler') }}</button>{% endif %}
+      {% if j.status != 'rejected' %}<button class="btn no" data-action="reject">{{ _('Archiver') }}</button>{% endif %}
+      {% if j.status != 'proposed' %}<button class="btn ghost" data-action="pending">{{ _('Nouvelle') }}</button>{% endif %}
+    </div>
+  </li>
+{% endfor %}
+</ul>
+{% endif %}
