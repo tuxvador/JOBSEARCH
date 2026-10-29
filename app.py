@@ -242,6 +242,12 @@ def start_session(u):
         session["lang"] = lang
 
 
+@app.route("/favicon.ico")
+def favicon():
+    # browsers that ignore <link rel="icon"> still ask for /favicon.ico
+    return redirect(url_for("static", filename="favicon.svg"), 301)
+
+
 @app.route("/lang/<code>")
 def set_lang(code):
     if code in LANGS:
