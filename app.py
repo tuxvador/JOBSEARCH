@@ -44,9 +44,8 @@ FIELDS = ("title", "company", "location", "url", "source", "notes")
 USERNAME_RE = re.compile(r"^[A-Za-z0-9._-]{2,32}$")
 MIN_PASSWORD = 10
 PARIS = ZoneInfo("Europe/Paris")
-SETTING_KEYS = ("ft_client_id", "ft_client_secret", "adzuna_app_id", "adzuna_app_key",
-                "jooble_key", "careerjet_key", "careerjet_locale", "lba_key")
-SECRET_SETTINGS = ("ft_client_secret", "adzuna_app_key", "jooble_key", "careerjet_key", "lba_key")
+SETTING_KEYS = ("jooble_key", "careerjet_key", "careerjet_locale", "lba_key")
+SECRET_SETTINGS = ("jooble_key", "careerjet_key", "lba_key")
 
 app = Flask(__name__)
 # Chain: client -> front reverse proxy (TLS) -> local nginx -> gunicorn. The local
@@ -393,9 +392,7 @@ def recent_runs(uid):
 def api_settings_state():
     c = conn()
     has = lambda *keys: all(db.get_setting(c, k) for k in keys)
-    return {"francetravail": has("ft_client_id", "ft_client_secret"),
-            "labonnealternance": has("lba_key"),
-            "adzuna": has("adzuna_app_id", "adzuna_app_key"),
+    return {"labonnealternance": has("lba_key"),
             "jooble": has("jooble_key"), "careerjet": has("careerjet_key"),
             "remoteok": True, "himalayas": True}
 

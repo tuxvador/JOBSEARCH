@@ -35,9 +35,7 @@ USER_AGENT = "job.tuxvador.fr/1.0 (personal job dashboard)"
 USD_TO_EUR = 0.9  # rough, only used to compare foreign salaries with the floor
 
 SOURCES = {
-    "francetravail": "France Travail",
     "labonnealternance": "La bonne alternance",
-    "adzuna": "Adzuna",
     "jooble": "Jooble",
     "careerjet": "Careerjet",
     "remoteok": "RemoteOK",
@@ -157,6 +155,7 @@ def load_criteria(raw):
             crit.update(json.loads(raw))
         except (ValueError, TypeError):
             pass
+    crit["sources"] = [s for s in crit.get("sources") or [] if s in SOURCES]  # drop removed sources
     return crit
 
 
@@ -285,78 +284,6 @@ def _too_old(dt, crit):
     return dt is not None and (datetime.now(timezone.utc) - dt).days > crit["max_age_days"]
 
 
-_FT_ALTERNANCE_CACHE = {}
-
-
-def _ft_alternance_codes(auth, log, lang):
-    """natureContrat codes for apprenticeship / professionalisation, read from
-    France Travail's own reference list (not hard-coded)."""
-    if "codes" not in _FT_ALTERNANCE_CACHE:
-        _, ref = http_json("https://api.francetravail.io/partenaire/offresdemploi/v2/referentiel/naturesContrats",
-                           headers=auth)
-        codes = [r["code"] for r in (ref or [])
-                 if re.search(r"apprenti|professionnali", normalize(r.get("libelle", "")))]
-        _FT_ALTERNANCE_CACHE["codes"] = codes
-        log(tr(lang, "France Travail : codes alternance {codes}", codes=", ".join(codes) or "—"))
-    return _FT_ALTERNANCE_CACHE["codes"]
-
-
-def src_francetravail(crit, settings, log, lang, requester):
-    cid, secret = settings.get("ft_client_id"), settings.get("ft_client_secret")
-    if not (cid and secret):
-        log(tr(lang, "{src} : identifiants API non configurés (Admin → Paramètres) — ignoré", src="France Travail"))
-        return []
-    body = urllib.parse.urlencode({"grant_type": "client_credentials", "client_id": cid,
-                                   "client_secret": secret, "scope": "api_offresdemploiv2 o2dsoffre"}).encode()
-    _, tok = http_json("https://entreprise.francetravail.fr/connexion/oauth2/access_token?realm=%2Fpartenaire",
-                       data=body, headers={"Content-Type": "application/x-www-form-urlencoded"})
-    auth = {"Authorization": f"Bearer {tok['access_token']}"}
-    since = next((d for d in (1, 3, 7, 14, 31) if d >= crit["max_age_days"]), 31)
-    codes = {"CDI": "CDI", "CDD": "CDD", "Freelance": "LIB", "Intérim": "MIS"}
-    filters = []  # one query per filter set (contract type OR work-study)
-    types = [codes[c] for c in crit["contracts"] if c in codes]
-    if types:
-        filters.append({"typeContrat": ",".join(types)})
-    if "Alternance" in crit["contracts"]:
-        alt = _ft_alternance_codes(auth, log, lang)
-        if alt:
-            filters.append({"natureContrat": ",".join(alt)})
-    if not filters:
-        filters.append({})
-    out = []
-    for kw in crit["keywords"]:
-        n = 0
-        for extra in filters:
-            params = {"motsCles": kw, "range": "0-149", "publieeDepuis": since, **extra}
-            if crit["ft_departements"]:
-                params["departement"] = crit["ft_departements"]
-            status, data = http_json("https://api.francetravail.io/partenaire/offresdemploi/v2/offres/search?"
-                                     + urllib.parse.urlencode(params), headers=auth)
-            rows = (data or {}).get("resultats", []) if status in (200, 206) else []
-            n += len(rows)
-            for o in rows:
-                sal = (o.get("salaire") or {}).get("libelle", "")
-                nums = [float(x) for x in re.findall(r"\d+(?:\.\d+)?", sal)]
-                contract = " · ".join(x for x in (o.get("typeContratLibelle"), o.get("natureContrat"),
-                                                  "alternance" if o.get("alternance") else "") if x)
-                out.append({
-                    "title": o.get("intitule", ""),
-                    "company": (o.get("entreprise") or {}).get("nom", ""),
-                    "location": (o.get("lieuTravail") or {}).get("libelle", ""),
-                    "url": (o.get("origineOffre") or {}).get("urlOrigine")
-                           or f"https://candidat.francetravail.fr/offres/recherche/detail/{o.get('id')}",
-                    "salary": sal,
-                    "salary_eur": _salary_eur_year(min(nums) if nums else None, max(nums) if nums else None,
-                                                   "EUR", sal.split(" ")[0] if sal else ""),
-                    "contract": contract,
-                    "snippet": (o.get("description") or "")[:300],
-                    "published": (o.get("dateCreation") or "")[:10],
-                })
-            time.sleep(0.4)
-        log(tr(lang, "{src} « {kw} » : {n}", src="France Travail", kw=kw, n=n))
-    return out
-
-
 def src_labonnealternance(crit, settings, log, lang, requester):
     """La bonne alternance (api.apprentissage.beta.gouv.fr): apprenticeship
     offers only (LBA + France Travail + partners). No keyword search: the scope
@@ -408,41 +335,6 @@ def src_labonnealternance(crit, settings, log, lang, requester):
             "published": dt.strftime("%Y-%m-%d") if dt else "",
         })
     log(tr(lang, "{src} : {n} offres, {m} assez récentes", src="La bonne alternance", n=len(rows), m=len(out)))
-    return out
-
-
-def src_adzuna(crit, settings, log, lang, requester):
-    app_id, app_key = settings.get("adzuna_app_id"), settings.get("adzuna_app_key")
-    if not (app_id and app_key):
-        log(tr(lang, "{src} : identifiants API non configurés (Admin → Paramètres) — ignoré", src="Adzuna"))
-        return []
-    out = []
-    for kw in search_terms(crit):
-        params = {"app_id": app_id, "app_key": app_key, "what_phrase": kw,
-                  "max_days_old": crit["max_age_days"], "results_per_page": 50,
-                  "content-type": "application/json"}
-        if crit["adzuna_where"]:
-            params["where"] = crit["adzuna_where"]
-            params["distance"] = 40
-        if crit["contracts"] == ["CDI"]:
-            params["permanent"] = 1
-        _, data = http_json("https://api.adzuna.com/v1/api/jobs/fr/search/1?" + urllib.parse.urlencode(params))
-        rows = (data or {}).get("results", [])
-        log(tr(lang, "{src} « {kw} » : {n}", src="Adzuna", kw=kw, n=len(rows)))
-        for o in rows:
-            lo, hi = o.get("salary_min"), o.get("salary_max")
-            out.append({
-                "title": re.sub(r"<[^>]+>", "", o.get("title", "")),
-                "company": (o.get("company") or {}).get("display_name", ""),
-                "location": (o.get("location") or {}).get("display_name", ""),
-                "url": o.get("redirect_url", ""),
-                "salary": _salary_text(lo, hi, "EUR", "an"),
-                "salary_eur": None if str(o.get("salary_is_predicted")) == "1" else _salary_eur_year(lo, hi),
-                "contract": {"permanent": "CDI", "contract": "CDD"}.get(o.get("contract_type"), ""),
-                "snippet": re.sub(r"<[^>]+>", "", o.get("description", ""))[:300],
-                "published": (o.get("created") or "")[:10],
-            })
-        time.sleep(0.4)
     return out
 
 
@@ -598,7 +490,7 @@ def src_himalayas(crit, settings, log, lang, requester):
     return out
 
 
-SOURCE_FUNCS = {"francetravail": src_francetravail, "labonnealternance": src_labonnealternance, "adzuna": src_adzuna, "jooble": src_jooble,
+SOURCE_FUNCS = {"labonnealternance": src_labonnealternance, "jooble": src_jooble,
                 "careerjet": src_careerjet, "remoteok": src_remoteok, "himalayas": src_himalayas}
 
 

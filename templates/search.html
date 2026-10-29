@@ -39,16 +39,16 @@
           <span class="check viaemail">LinkedIn · Indeed · APEC · WTTJ · HelloWork · Cadremploi
             <a href="{{ url_for('account') }}#mail" class="pill">{{ _('Import e-mail') }}</a></span>
         </div>
-        <span class="hint">{{ _("France Travail, Adzuna, Jooble et Careerjet couvrent la France ; La bonne alternance ne publie que des offres en alternance ; RemoteOK et Himalayas sont des sites de télétravail internationaux. LinkedIn, APEC, Indeed… arrivent par l'import des alertes e-mail (page Compte).") }}</span>
+        <span class="hint">{{ _("Jooble et Careerjet couvrent la France ; La bonne alternance ne publie que des offres en alternance (dont celles de France Travail) ; RemoteOK et Himalayas sont des sites de télétravail internationaux. LinkedIn, APEC, Indeed… arrivent par l'import des alertes e-mail (page Compte).") }}</span>
       </div>
     </section>
 
     <section class="panel">
       <h2>{{ _('2. Filtres') }}</h2>
       <div class="grid2">
-        <label class="field">{{ _('Départements (France Travail, La bonne alternance)') }} <span class="hint">{{ _('ex. 35, 22, 56 — vide = toute la France') }}</span>
+        <label class="field">{{ _('Départements (La bonne alternance)') }} <span class="hint">{{ _('ex. 35, 22, 56 — vide = toute la France') }}</span>
           <input name="ft_departements" value="{{ crit.ft_departements }}"></label>
-        <label class="field">{{ _('Ville / région (Adzuna, Jooble, Careerjet)') }} <span class="hint">{{ _('ex. Rennes — vide = toute la France') }}</span>
+        <label class="field">{{ _('Ville / région (Jooble, Careerjet)') }} <span class="hint">{{ _('ex. Rennes — vide = toute la France') }}</span>
           <input name="adzuna_where" value="{{ crit.adzuna_where }}"></label>
         <label class="field">{{ _('Codes ROME (La bonne alternance)') }} <span class="hint">{{ _('facultatif, ex. M1101, N1301 — mieux vaut laisser vide et indiquer un département') }}</span>
           <input name="lba_romes" value="{{ crit.lba_romes }}"></label>
@@ -57,7 +57,7 @@
         <label class="field">{{ _('Salaire annuel minimum (€)') }} <span class="hint">{{ _('écarte seulement les offres qui affichent un salaire plus bas') }}</span>
           <input name="salary_floor" type="number" min="0" step="1000" value="{{ crit.salary_floor }}"></label>
       </div>
-      <div class="field">{{ _('Types de contrat') }} <span class="hint">{{ _('filtre France Travail et Careerjet ; si seule « Alternance » est cochée, le mot alternance est ajouté aux recherches des autres sites') }}</span>
+      <div class="field">{{ _('Types de contrat') }} <span class="hint">{{ _('filtre Careerjet ; si seule « Alternance » est cochée, le mot alternance est ajouté aux recherches des autres sites') }}</span>
         <div class="checks">
           {% for c in CONTRACTS %}<label class="check"><input type="checkbox" name="contracts" value="{{ c }}" {{ 'checked' if c in crit.contracts }}> {{ c }}</label>{% endfor %}
         </div>

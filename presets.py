@@ -17,7 +17,7 @@ _SC_OPERATIVE = ["cariste", "preparateur*", "preparatrice*", "manutention*", "ma
 PENTEST = {
     "keywords": ["pentester", "pentest", "test d'intrusion", "red team",
                  "penetration tester", "sécurité offensive"],
-    "sources": ["francetravail", "adzuna", "jooble", "careerjet", "remoteok", "himalayas"],
+    "sources": ["jooble", "careerjet", "remoteok", "himalayas"],
     "ft_departements": "",
     "adzuna_where": "",
     "lba_romes": "",
@@ -53,7 +53,7 @@ PENTEST = {
 SUPPLY_CHAIN = {
     "keywords": ["supply chain", "responsable supply chain", "approvisionneur", "demand planner",
                  "responsable logistique", "acheteur", "planification"],
-    "sources": ["francetravail", "adzuna", "jooble", "careerjet", "himalayas"],
+    "sources": ["jooble", "careerjet", "himalayas"],
     "ft_departements": "",
     "adzuna_where": "",
     "lba_romes": "",
@@ -83,7 +83,7 @@ SUPPLY_CHAIN = {
 SUPPLY_CHAIN_ALTERNANCE = {
     "keywords": ["supply chain", "logistique", "approvisionnement", "achats", "demand planning",
                  "transport", "ADV"],
-    "sources": ["francetravail", "labonnealternance", "adzuna", "jooble", "careerjet"],
+    "sources": ["labonnealternance", "jooble", "careerjet"],
     "ft_departements": "",
     "adzuna_where": "",
     "lba_romes": "",  # empty on purpose: see search.src_labonnealternance
@@ -112,7 +112,7 @@ SUPPLY_CHAIN_ALTERNANCE = {
 
 BLANK = {
     "keywords": [],
-    "sources": ["francetravail", "adzuna", "jooble", "careerjet"],
+    "sources": ["jooble", "careerjet"],
     "ft_departements": "",
     "adzuna_where": "",
     "lba_romes": "",
