@@ -17,6 +17,7 @@ any ending ("logisti*" -> logistique); "re:<regex>" is a raw regex.
 Sources use official APIs only. LinkedIn, APEC, Indeed… have no search API;
 their offers come in through e-mail alerts (mailalerts.py) or the bookmarklet.
 """
+import html
 import json
 import re
 import time
@@ -359,7 +360,11 @@ def src_francetravail(crit, settings, log, lang, requester):
 def src_labonnealternance(crit, settings, log, lang, requester):
     """La bonne alternance (api.apprentissage.beta.gouv.fr): apprenticeship
     offers only (LBA + France Travail + partners). No keyword search: the scope
-    is ROME job-family codes and départements; scoring does the rest."""
+    is ROME job-family codes and départements; scoring does the rest.
+    ROME codes are best left empty: offers carry fine-grained ROME 4.0 codes
+    (supply chain alone spans N1209, N1305, H1401, D1431, M1419…), so a short
+    list misses most of them. A département alone returns every offer there
+    (up to 150 per origin, 450 in all) and the scorer picks."""
     key = settings.get("lba_key")
     if not key:
         log(tr(lang, "{src} : identifiants API non configurés (Admin → Paramètres) — ignoré", src="La bonne alternance"))
@@ -367,6 +372,8 @@ def src_labonnealternance(crit, settings, log, lang, requester):
     params = []
     if crit.get("lba_romes"):
         params.append(("romes", crit["lba_romes"]))
+    elif not (crit.get("ft_departements") or "").strip():
+        log(tr(lang, "La bonne alternance : ni département ni code ROME — seules les 450 offres les plus récentes de France sont lues"))
     for d in (crit.get("ft_departements") or "").split(","):
         if d.strip():
             params.append(("departements", d.strip()))
@@ -390,14 +397,14 @@ def src_labonnealternance(crit, settings, log, lang, requester):
                                           tr(lang, "{n} mois", n=c["duration"]) if c.get("duration") else "",
                                           diploma] if x)
         out.append({
-            "title": off.get("title", ""),
-            "company": wp.get("brand") or wp.get("name") or wp.get("legal_name") or "",
+            "title": html.unescape(off.get("title") or ""),
+            "company": html.unescape(wp.get("brand") or wp.get("name") or wp.get("legal_name") or ""),
             "location": (wp.get("location") or {}).get("address", ""),
             "url": (o.get("apply") or {}).get("url", ""),
             "salary": "",
             "salary_eur": None,
             "contract": contract,
-            "snippet": re.sub(r"<[^>]+>", " ", off.get("description") or "")[:300],
+            "snippet": html.unescape(re.sub(r"<[^>]+>", " ", off.get("description") or ""))[:300],
             "published": dt.strftime("%Y-%m-%d") if dt else "",
         })
     log(tr(lang, "{src} : {n} offres, {m} assez récentes", src="La bonne alternance", n=len(rows), m=len(out)))

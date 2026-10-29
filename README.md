@@ -18,8 +18,8 @@ Runs at [job.tuxvador.fr](https://job.tuxvador.fr).
     *required* groups (signal, location, contract);
   - exclusions (score −999), one penalty, minimum score, top N per source.
 - **Sources** (official APIs only):
-  France Travail, La bonne alternance (work-study jobs, searched by ROME
-  codes + départements), Adzuna, Jooble, Careerjet (free keys, entered under
+  France Travail, La bonne alternance (work-study jobs, read per
+  département and filtered by the scoring), Adzuna, Jooble, Careerjet (free keys, entered under
   Admin → Settings), RemoteOK and Himalayas (no key).
 - **Email alert import**: LinkedIn, Indeed, APEC, Welcome to the Jungle, HelloWork,
   Cadremploi… have no search API. Point their job alerts at a mailbox; the worker
