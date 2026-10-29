@@ -39,17 +39,19 @@
           <span class="check viaemail">LinkedIn · Indeed · APEC · WTTJ · HelloWork · Cadremploi
             <a href="{{ url_for('account') }}#mail" class="pill">{{ _('Import e-mail') }}</a></span>
         </div>
-        <span class="hint">{{ _("France Travail, Adzuna, Jooble et Careerjet couvrent la France ; RemoteOK et Himalayas sont des sites de télétravail internationaux. LinkedIn, APEC, Indeed… arrivent par l'import des alertes e-mail (page Compte).") }}</span>
+        <span class="hint">{{ _("France Travail, Adzuna, Jooble et Careerjet couvrent la France ; La bonne alternance ne publie que des offres en alternance ; RemoteOK et Himalayas sont des sites de télétravail internationaux. LinkedIn, APEC, Indeed… arrivent par l'import des alertes e-mail (page Compte).") }}</span>
       </div>
     </section>
 
     <section class="panel">
       <h2>{{ _('2. Filtres') }}</h2>
       <div class="grid2">
-        <label class="field">{{ _('Départements (France Travail)') }} <span class="hint">{{ _('ex. 35, 22, 56 — vide = toute la France') }}</span>
+        <label class="field">{{ _('Départements (France Travail, La bonne alternance)') }} <span class="hint">{{ _('ex. 35, 22, 56 — vide = toute la France') }}</span>
           <input name="ft_departements" value="{{ crit.ft_departements }}"></label>
         <label class="field">{{ _('Ville / région (Adzuna, Jooble, Careerjet)') }} <span class="hint">{{ _('ex. Rennes — vide = toute la France') }}</span>
           <input name="adzuna_where" value="{{ crit.adzuna_where }}"></label>
+        <label class="field">{{ _('Codes ROME (La bonne alternance)') }} <span class="hint">{{ _('familles de métiers, ex. M1101, N1301 — vide = toutes') }}</span>
+          <input name="lba_romes" value="{{ crit.lba_romes }}"></label>
         <label class="field">{{ _('Publiées depuis (jours)') }}
           <input name="max_age_days" type="number" min="1" max="90" value="{{ crit.max_age_days }}"></label>
         <label class="field">{{ _('Salaire annuel minimum (€)') }} <span class="hint">{{ _('écarte seulement les offres qui affichent un salaire plus bas') }}</span>

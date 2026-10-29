@@ -19,6 +19,11 @@
       {{ secret('ft_client_secret', _('Clé secrète')) }}
     </section>
     <section class="panel">
+      <h2>La bonne alternance</h2>
+      <p class="hint">{{ long_text('LBA_HELP') }}</p>
+      {{ secret('lba_key', _('Clé API La bonne alternance')) }}
+    </section>
+    <section class="panel">
       <h2>Adzuna</h2>
       <p class="hint">{{ long_text('ADZUNA_HELP') }}</p>
       <label class="field">App ID <input name="adzuna_app_id" value="{{ vals.adzuna_app_id }}" autocomplete="off"></label>

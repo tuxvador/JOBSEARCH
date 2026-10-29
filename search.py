@@ -35,6 +35,7 @@ USD_TO_EUR = 0.9  # rough, only used to compare foreign salaries with the floor
 
 SOURCES = {
     "francetravail": "France Travail",
+    "labonnealternance": "La bonne alternance",
     "adzuna": "Adzuna",
     "jooble": "Jooble",
     "careerjet": "Careerjet",
@@ -178,6 +179,7 @@ def criteria_from_form(form, lang="fr"):
         "sources": [s for s in form.getlist("sources") if s in SOURCES],
         "ft_departements": ",".join(re.findall(r"\b(?:\d{2,3}|2[AB])\b", form.get("ft_departements", "")))[:60],
         "adzuna_where": form.get("adzuna_where", "").strip()[:60],
+        "lba_romes": ",".join(dict.fromkeys(re.findall(r"\b[A-N]\d{4}\b", form.get("lba_romes", "").upper())))[:200],
         "contracts": [c for c in form.getlist("contracts") if c in CONTRACTS],
         "max_age_days": _int(form.get("max_age_days"), 31, 1, 90),
         "salary_floor": _int(form.get("salary_floor"), 0, 0, 1000000),
@@ -351,6 +353,54 @@ def src_francetravail(crit, settings, log, lang, requester):
                 })
             time.sleep(0.4)
         log(tr(lang, "{src} « {kw} » : {n}", src="France Travail", kw=kw, n=n))
+    return out
+
+
+def src_labonnealternance(crit, settings, log, lang, requester):
+    """La bonne alternance (api.apprentissage.beta.gouv.fr): apprenticeship
+    offers only (LBA + France Travail + partners). No keyword search: the scope
+    is ROME job-family codes and départements; scoring does the rest."""
+    key = settings.get("lba_key")
+    if not key:
+        log(tr(lang, "{src} : identifiants API non configurés (Admin → Paramètres) — ignoré", src="La bonne alternance"))
+        return []
+    params = []
+    if crit.get("lba_romes"):
+        params.append(("romes", crit["lba_romes"]))
+    for d in (crit.get("ft_departements") or "").split(","):
+        if d.strip():
+            params.append(("departements", d.strip()))
+    _, data = http_json("https://api.apprentissage.beta.gouv.fr/api/job/v1/search?" + urllib.parse.urlencode(params),
+                        headers={"Authorization": f"Bearer {key}"})
+    rows = (data or {}).get("jobs") or []
+    for w in (data or {}).get("warnings") or []:
+        log(f"La bonne alternance : {w.get('code', '')} {w.get('message', '')}".strip())
+    out = []
+    for o in rows:
+        off, wp, c = o.get("offer") or {}, o.get("workplace") or {}, o.get("contract") or {}
+        created = (off.get("publication") or {}).get("creation") or ""
+        try:
+            dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
+        except ValueError:
+            dt = None
+        if _too_old(dt, crit):
+            continue
+        diploma = (off.get("target_diploma") or {}).get("label") or ""
+        contract = " · ".join(x for x in ["alternance", ", ".join(c.get("type") or []),
+                                          tr(lang, "{n} mois", n=c["duration"]) if c.get("duration") else "",
+                                          diploma] if x)
+        out.append({
+            "title": off.get("title", ""),
+            "company": wp.get("brand") or wp.get("name") or wp.get("legal_name") or "",
+            "location": (wp.get("location") or {}).get("address", ""),
+            "url": (o.get("apply") or {}).get("url", ""),
+            "salary": "",
+            "salary_eur": None,
+            "contract": contract,
+            "snippet": re.sub(r"<[^>]+>", " ", off.get("description") or "")[:300],
+            "published": dt.strftime("%Y-%m-%d") if dt else "",
+        })
+    log(tr(lang, "{src} : {n} offres, {m} assez récentes", src="La bonne alternance", n=len(rows), m=len(out)))
     return out
 
 
@@ -541,7 +591,7 @@ def src_himalayas(crit, settings, log, lang, requester):
     return out
 
 
-SOURCE_FUNCS = {"francetravail": src_francetravail, "adzuna": src_adzuna, "jooble": src_jooble,
+SOURCE_FUNCS = {"francetravail": src_francetravail, "labonnealternance": src_labonnealternance, "adzuna": src_adzuna, "jooble": src_jooble,
                 "careerjet": src_careerjet, "remoteok": src_remoteok, "himalayas": src_himalayas}
 
 

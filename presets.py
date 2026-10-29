@@ -20,6 +20,7 @@ PENTEST = {
     "sources": ["francetravail", "adzuna", "jooble", "careerjet", "remoteok", "himalayas"],
     "ft_departements": "",
     "adzuna_where": "",
+    "lba_romes": "",
     "contracts": ["CDI", "Freelance"],
     "max_age_days": 31,
     "salary_floor": 55000,
@@ -55,6 +56,7 @@ SUPPLY_CHAIN = {
     "sources": ["francetravail", "adzuna", "jooble", "careerjet", "himalayas"],
     "ft_departements": "",
     "adzuna_where": "",
+    "lba_romes": "",
     "contracts": ["CDI"],
     "max_age_days": 31,
     "salary_floor": 0,
@@ -76,14 +78,20 @@ SUPPLY_CHAIN = {
     "top_n": 15,
 }
 
+# ROME job families for La bonne alternance: purchasing (M1101, M1102), supply
+# chain / logistics (N1301-N1303), freight and international shipping (N1201,
+# N1202), sales administration / ADV (D1401).
+SC_ROMES = "M1101,M1102,N1301,N1302,N1303,N1201,N1202,D1401"
+
 # Work-study (alternance): the contract becomes a requirement instead of an
 # exclusion, and experienced-hire wording is penalised.
 SUPPLY_CHAIN_ALTERNANCE = {
     "keywords": ["supply chain", "logistique", "approvisionnement", "achats", "demand planning",
                  "transport", "ADV"],
-    "sources": ["francetravail", "adzuna", "jooble", "careerjet"],
+    "sources": ["francetravail", "labonnealternance", "adzuna", "jooble", "careerjet"],
     "ft_departements": "",
     "adzuna_where": "",
+    "lba_romes": SC_ROMES,
     "contracts": ["Alternance"],
     "max_age_days": 31,
     "salary_floor": 0,
@@ -112,6 +120,7 @@ BLANK = {
     "sources": ["francetravail", "adzuna", "jooble", "careerjet"],
     "ft_departements": "",
     "adzuna_where": "",
+    "lba_romes": "",
     "contracts": ["CDI"],
     "max_age_days": 31,
     "salary_floor": 0,
